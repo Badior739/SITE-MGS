@@ -1,0 +1,354 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+enum PageStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  SCHEDULED
+}
+
+enum PageVisibility {
+  PUBLIC
+  PRIVATE
+  PASSWORD_PROTECTED
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  AUDIO
+}
+
+enum AuditAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  PUBLISH
+  ARCHIVE
+  LOGIN
+  LOGOUT
+  PASSWORD_CHANGE
+  PERMISSION_CHANGE
+}
+
+enum IntegrationType {
+  PAYMENT
+  CRM
+  EMAIL_MARKETING
+  ANALYTICS
+  CDN
+  STORAGE
+  WEBHOOK
+  OTHER
+}
+
+// ============================================================================
+// USER MANAGEMENT
+// ============================================================================
+
+model User {
+  id                    String   @id @default(cuid())
+  email                 String   @unique
+  passwordHash          String
+  firstName             String
+  lastName              String
+  role                  UserRole @default(VIEWER)
+  status                UserStatus @default(ACTIVE)
+  
+  avatar                String?
+  phone                 String?
+  bio                   String?
+  
+  twoFactorEnabled      Boolean  @default(false)
+  twoFactorSecret       String?
+  lastLoginAt           DateTime?
+  lastLoginIp           String?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  deletedAt             DateTime?
+  
+  pages                 Page[]
+  media                 Media[]
+  auditLogs             AuditLog[]
+  sessions              Session[]
+  
+  @@index([email])
+  @@index([role])
+  @@index([status])
+}
+
+model Session {
+  id                    String   @id @default(cuid())
+  token                 String   @unique
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  userAgent             String?
+  ipAddress             String?
+  expiresAt             DateTime
+  
+  createdAt             DateTime @default(now())
+  
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ============================================================================
+// CONTENT MANAGEMENT
+// ============================================================================
+
+model Page {
+  id                    String   @id @default(cuid())
+  title                 String
+  slug                  String   @unique
+  description           String?
+  content               String
+  
+  status                PageStatus @default(DRAFT)
+  visibility            PageVisibility @default(PRIVATE)
+  publishedAt           DateTime?
+  scheduledAt           DateTime?
+  
+  metaTitle             String?
+  metaDescription       String?
+  metaKeywords          String?
+  ogImage               String?
+  canonicalUrl          String?
+  
+  blocks                Json?
+  templateId            String?
+  
+  createdBy             String
+  creator               User     @relation(fields: [createdBy], references: [id])
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  publishedBy           String?
+  viewCount             Int      @default(0)
+  
+  versions              PageVersion[]
+  
+  @@index([slug])
+  @@index([status])
+  @@index([visibility])
+  @@index([createdAt])
+}
+
+model PageVersion {
+  id                    String   @id @default(cuid())
+  pageId                String
+  page                  Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  
+  title                 String
+  content               String
+  blocks                Json?
+  
+  versionNumber         Int
+  changesSummary        String?
+  
+  createdAt             DateTime @default(now())
+  createdBy             String
+  
+  @@unique([pageId, versionNumber])
+  @@index([pageId])
+}
+
+// ============================================================================
+// MEDIA MANAGEMENT
+// ============================================================================
+
+model Media {
+  id                    String   @id @default(cuid())
+  name                  String
+  type                  MediaType
+  mimeType              String
+  
+  url                   String   @unique
+  thumbnailUrl          String?
+  
+  bucket                String
+  key                   String
+  size                  Int
+  
+  width                 Int?
+  height                Int?
+  duration              Int?
+  exif                  Json?
+  
+  tags                  String[]
+  description           String?
+  altText               String?
+  
+  uploadedBy            String
+  uploader              User     @relation(fields: [uploadedBy], references: [id])
+  createdAt             DateTime @default(now())
+  
+  @@index([type])
+  @@index([uploadedBy])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// SETTINGS
+// ============================================================================
+
+model Setting {
+  id                    String   @id @default(cuid())
+  key                   String   @unique
+  value                 String
+  type                  String   @default("string")
+  description           String?
+  isPublic              Boolean  @default(false)
+  
+  updatedAt             DateTime @updatedAt
+  
+  @@index([key])
+}
+
+model SiteConfig {
+  id                    String   @id @default(cuid())
+  
+  siteName              String   @default("Mind Graphix")
+  siteDescription       String?
+  favicon               String?
+  logo                  String?
+  
+  supportEmail          String?
+  supportPhone          String?
+  
+  socialLinks           Json?
+  
+  supportedLanguages    String[] @default(["en", "fr"])
+  defaultLanguage       String   @default("en")
+  
+  enableComments        Boolean  @default(false)
+  enableSearch          Boolean  @default(true)
+  enableAnalytics       Boolean  @default(true)
+  
+  siteUrl               String
+  
+  updatedAt             DateTime @updatedAt
+}
+
+// ============================================================================
+// AUDIT & LOGGING
+// ============================================================================
+
+model AuditLog {
+  id                    String   @id @default(cuid())
+  
+  action                AuditAction
+  resource              String
+  resourceId            String?
+  changes               Json?
+  
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id])
+  ipAddress             String?
+  userAgent             String?
+  
+  createdAt             DateTime @default(now())
+  
+  @@index([action])
+  @@index([resource])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// ANALYTICS
+// ============================================================================
+
+model AnalyticsEvent {
+  id                    String   @id @default(cuid())
+  
+  event                 String
+  pageId                String?
+  
+  sessionId             String?
+  userId                String?
+  
+  metadata              Json?
+  
+  createdAt             DateTime @default(now())
+  
+  @@index([event])
+  @@index([pageId])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// INTEGRATIONS (Stripe, Hubspot, Mailchimp, etc.)
+// ============================================================================
+
+model Integration {
+  id                    String   @id @default(cuid())
+  
+  name                  String   @unique
+  type                  IntegrationType
+  
+  apiKey                String?
+  apiSecret             String?
+  webhookUrl            String?
+  webhookSecret         String?
+  
+  isActive              Boolean  @default(false)
+  lastSyncAt            DateTime?
+  syncError             String?
+  
+  config                Json?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  logs                  IntegrationLog[]
+  
+  @@index([type])
+  @@index([isActive])
+}
+
+model IntegrationLog {
+  id                    String   @id @default(cuid())
+  
+  integrationId         String
+  integration           Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  
+  action                String
+  status                String
+  
+  payload               Json?
+  error                 String?
+  
+  createdAt             DateTime @default(now())
+  
+  @@index([integrationId])
+  @@index([status])
+  @@index([createdAt])
+}

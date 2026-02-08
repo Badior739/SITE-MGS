@@ -1,0 +1,29 @@
+{
+  "name": "mind-graphix-solution---premium",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Mind Graphix - Enterprise CMS Platform",
+  "type": "module",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "dev:frontend": "turbo run dev --filter=@mind-graphix/frontend",
+    "dev:backend": "turbo run dev --filter=@mind-graphix/backend",
+    "build": "turbo run build",
+    "build:frontend": "turbo run build --filter=@mind-graphix/frontend",
+    "build:backend": "turbo run build --filter=@mind-graphix/backend",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "format": "turbo run format",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "db:migrate": "turbo run prisma:migrate --filter=@mind-graphix/backend",
+    "db:seed": "turbo run prisma:seed --filter=@mind-graphix/backend",
+    "db:studio": "turbo run prisma:studio --filter=@mind-graphix/backend",
+    "db:reset": "turbo run prisma:reset --filter=@mind-graphix/backend"
+  },
+  "devDependencies": {
+    "turbo": "^1.10.0"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@mind-graphix/utils",
+  "version": "1.0.0",
+  "description": "Shared utility functions",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint src --ext .ts,.tsx"
+  },
+  "dependencies": {
+    "lodash-es": "^4.17.21",
+    "date-fns": "^2.30.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}
