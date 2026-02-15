@@ -295,23 +295,30 @@ export const ServiceCard: React.FC<{ service: any; index?: number }> = ({ servic
 };
 
 const Services: React.FC = () => {
-  const { t, language, getData } = useLanguage();
+  const { t, language } = useLanguage();
   const [services, setServices] = useState<any[]>([]);
+  const [cmsContent, setCmsContent] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const getData = (key: string) => {
+    return cmsContent ? cmsContent[key] : null;
+  };
 
   useEffect(() => {
     const load = async () => {
       try {
         setIsLoading(true);
-        // On essaie de récupérer via l'API (qui a un fallback mocké)
-        const data = await api.getServices();
+        // On essaie de récupérer via l'API (CMS)
+        const res = await fetch('/api/content');
+        const content = await res.json();
+        setCmsContent(content);
         
-        // Si les données de l'API sont vides ou ne correspondent pas à la langue,
-        // on utilise les constantes locales qui sont plus riches en contenu zip
-        const localServices = DATA_BY_LANG[language as keyof typeof DATA_BY_LANG]?.services || [];
-        
-        // On fusionne ou on privilégie les données locales si elles sont plus complètes
-        setServices(localServices.length > 0 ? localServices : data);
+        if (content.services && content.services.length > 0) {
+          setServices(content.services);
+        } else {
+          // Fallback sur les données locales si l'API est vide
+          setServices(DATA_BY_LANG[language as keyof typeof DATA_BY_LANG]?.services || []);
+        }
       } catch (error) {
         console.error('Erreur lors du chargement des services:', error);
         setServices(DATA_BY_LANG[language as keyof typeof DATA_BY_LANG]?.services || []);
