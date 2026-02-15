@@ -529,7 +529,7 @@ export const PortfolioManager = ({ showToast }: { showToast: any }) => {
         setItems(updatedItems);
         showToast("Projet supprimé", "success");
       } catch (e) {
-        mockDB.deletePortfolioItem(id);
+        mockDB.deletePortfolioItem(id as any);
         loadPortfolio();
         showToast("Supprimé en local (Fallback)", "warning");
       }
@@ -672,7 +672,7 @@ export const TeamManager = ({ showToast }: { showToast: any }) => {
         setMembers(updatedTeam);
         showToast("Membre supprimé", "success");
       } catch (e) {
-        mockDB.deleteTeamMember(id);
+        mockDB.deleteTeamMember(id as any);
         loadTeam();
         showToast("Supprimé en local (Fallback)", "warning");
       }

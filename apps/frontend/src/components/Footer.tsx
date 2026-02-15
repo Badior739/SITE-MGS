@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import * as LucideIcons from 'lucide-react';
 import { Facebook, Twitter, Instagram, Linkedin, Github, Send, ArrowUp, Mail, Phone, MapPin, Globe, ExternalLink, Sparkles, Home, Info, Cpu, Briefcase, Users, ShieldCheck, Zap, Globe2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -94,7 +95,7 @@ const Footer: React.FC = () => {
             </p>
             <div className="flex gap-4">
               {footerData.socials.map((social, idx) => {
-                const Icon = { Facebook, Twitter, Instagram, Linkedin, Github }[social.icon as keyof typeof import('lucide-react')] || Globe;
+                const Icon = (LucideIcons as any)[social.icon] || Globe;
                 const colors: {[key: string]: string} = {
                   Facebook: "hover:bg-blue-600",
                   Twitter: "hover:bg-sky-500",
