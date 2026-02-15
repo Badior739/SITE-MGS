@@ -13,6 +13,37 @@ const Footer: React.FC = () => {
   const { isAuthenticated } = useAdmin();
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [footerData, setFooterData] = useState({
+    description: "Nous concevons des écosystèmes digitaux où l'esthétique rencontre la performance technologique.",
+    newsletterTitle: "Prêt pour le futur ?",
+    newsletterDesc: "Rejoignez notre cercle d'innovation et recevez des insights exclusifs sur le design et la tech.",
+    copyright: "© 2026 MGS Architecture. All rights reserved.",
+    email: "mindgraphixsolution@gmail.com",
+    phone: "+226 01 51 11 46",
+    address: "Abidjan, Côte d'Ivoire",
+    socials: [
+      { name: "Facebook", href: "https://facebook.com/mindgraphix", icon: "Facebook" },
+      { name: "Twitter", href: "https://twitter.com/mindgraphix", icon: "Twitter" },
+      { name: "Instagram", href: "https://instagram.com/mindgraphix", icon: "Instagram" },
+      { name: "Linkedin", href: "https://linkedin.com/company/mindgraphix", icon: "Linkedin" },
+      { name: "Github", href: "https://github.com/mindgraphix", icon: "Github" }
+    ]
+  });
+
+  React.useEffect(() => {
+    const loadFooter = async () => {
+      try {
+        const res = await fetch('/api/content');
+        const content = await res.json();
+        if (content.footer) {
+          setFooterData(content.footer);
+        }
+      } catch (e) {
+        console.error("Error loading footer data", e);
+      }
+    };
+    loadFooter();
+  }, []);
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,24 +90,28 @@ const Footer: React.FC = () => {
               </div>
             </Link>
             <p className="text-[var(--text-muted)] text-lg leading-relaxed mb-10 opacity-80 font-medium max-w-md">
-              {t('footer.description') || 'Nous concevons des écosystèmes digitaux où l\'esthétique rencontre la performance technologique.'}
+              {footerData.description}
             </p>
             <div className="flex gap-4">
-              {[
-                { Icon: Facebook, href: "https://facebook.com/mindgraphix", color: "hover:bg-blue-600" },
-                { Icon: Twitter, href: "https://twitter.com/mindgraphix", color: "hover:bg-sky-500" },
-                { Icon: Instagram, href: "https://instagram.com/mindgraphix", color: "hover:bg-pink-600" },
-                { Icon: Linkedin, href: "https://linkedin.com/company/mindgraphix", color: "hover:bg-blue-700" },
-                { Icon: Github, href: "https://github.com/mindgraphix", color: "hover:bg-gray-800" }
-              ].map(({ Icon, href, color }, idx) => (
-                <a 
-                  key={idx} 
-                  href={href} 
-                  className={`w-12 h-12 rounded-2xl glass border border-[var(--border-color)] flex items-center justify-center text-[var(--text-muted)] hover:text-white transition-all transform hover:-translate-y-2 hover:shadow-2xl ${color}`}
-                >
-                  <Icon size={20} />
-                </a>
-              ))}
+              {footerData.socials.map((social, idx) => {
+                const Icon = { Facebook, Twitter, Instagram, Linkedin, Github }[social.icon as keyof typeof import('lucide-react')] || Globe;
+                const colors: {[key: string]: string} = {
+                  Facebook: "hover:bg-blue-600",
+                  Twitter: "hover:bg-sky-500",
+                  Instagram: "hover:bg-pink-600",
+                  Linkedin: "hover:bg-blue-700",
+                  Github: "hover:bg-gray-800"
+                };
+                return (
+                  <a 
+                    key={idx} 
+                    href={social.href} 
+                    className={`w-12 h-12 rounded-2xl glass border border-[var(--border-color)] flex items-center justify-center text-[var(--text-muted)] hover:text-white transition-all transform hover:-translate-y-2 hover:shadow-2xl ${colors[social.icon] || 'hover:bg-[var(--accent-color)]'}`}
+                  >
+                    <Icon size={20} />
+                  </a>
+                );
+              })}
             </div>
           </div>
 
@@ -86,10 +121,10 @@ const Footer: React.FC = () => {
             </div>
             <div className="relative z-10">
               <h3 className="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight mb-4">
-                {t('footer.newsletter_title') || 'Prêt pour le futur ?'}
+                {footerData.newsletterTitle}
               </h3>
               <p className="text-[var(--text-muted)] mb-10 max-w-sm font-medium">
-                Rejoignez notre cercle d'innovation et recevez des insights exclusifs sur le design et la tech.
+                {footerData.newsletterDesc}
               </p>
               <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-4">
                 <div className="relative flex-1 group">
@@ -172,12 +207,12 @@ const Footer: React.FC = () => {
               <div className="glass border border-[var(--border-color)] rounded-2xl p-6 hover:border-[var(--accent-color)] transition-all group">
                 <Mail className="text-[var(--accent-color)] mb-4" size={24} />
                 <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1">Email</p>
-                <a href="mailto:mindgraphixsolution@gmail.com" className="text-sm font-black text-[var(--text-main)]">mindgraphixsolution@gmail.com</a>
+                <a href={`mailto:${footerData.email}`} className="text-sm font-black text-[var(--text-main)]">{footerData.email}</a>
               </div>
               <div className="glass border border-[var(--border-color)] rounded-2xl p-6 hover:border-[var(--accent-color)] transition-all group">
                 <Phone className="text-[var(--accent-color)] mb-4" size={24} />
                 <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1">Studio</p>
-                <a href="tel:+22601511146" className="text-sm font-black text-[var(--text-main)]">+226 01 51 11 46</a>
+                <a href={`tel:${footerData.phone.replace(/\s/g, '')}`} className="text-sm font-black text-[var(--text-main)]">{footerData.phone}</a>
               </div>
             </div>
           </div>
@@ -207,7 +242,7 @@ const Footer: React.FC = () => {
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center gap-6">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] opacity-60">
-              &copy; 2026 MGS Architecture. All rights reserved.
+              {footerData.copyright}
             </p>
             <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-[var(--bg-accent)] rounded-full border border-[var(--border-color)]">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />

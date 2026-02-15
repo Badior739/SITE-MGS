@@ -47,6 +47,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, activePage, setActi
     ]},
     { name: 'No-Code CMS', items: [
       { id: 'home_manager', label: 'Accueil & Hero', icon: Home },
+      { id: 'header_manager', label: 'Header & Logo', icon: Sidebar },
+      { id: 'footer_manager', label: 'Footer & Infos', icon: Layers },
       { id: 'services_manager', label: 'Services', icon: Briefcase },
       { id: 'testimonials_manager', label: 'Témoignages', icon: Star },
       { id: 'portfolio_manager', label: 'Portfolio', icon: Layout },

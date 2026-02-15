@@ -14,11 +14,34 @@ import { Palette as IconPalette, Code, Smartphone, Video, ShoppingCart, BarChart
 export const HomeManager = ({ showToast }: { showToast: any }) => {
   const [data, setData] = useState<any>(null);
 
-  useEffect(() => { setData(mockDB.getHero()); }, []);
+  useEffect(() => {
+    fetch('/api/content')
+      .then(res => res.json())
+      .then(content => {
+        if (content.hero) {
+          setData(content.hero);
+        } else {
+          setData(mockDB.getHero());
+        }
+      });
+  }, []);
 
-  const handleSave = () => {
-    mockDB.saveHero(data);
-    showToast("Accueil mise à jour", "success");
+  const handleSave = async () => {
+    try {
+      const res = await fetch('/api/content');
+      const currentContent = await res.json();
+      const updatedContent = { ...currentContent, hero: data };
+      
+      await fetch('/api/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedContent)
+      });
+      showToast("Accueil mise à jour (Fichier)", "success");
+    } catch (e) {
+      mockDB.saveHero(data);
+      showToast("Sauvegardé en local (Fallback)", "warning");
+    }
   };
 
   if (!data) return null;
@@ -70,19 +93,79 @@ export const ServiceManager = ({ showToast }: { showToast: any }) => {
   const [services, setServices] = useState<any[]>([]);
   const [editing, setEditing] = useState<any | null>(null);
 
-  useEffect(() => { setServices(mockDB.getServices()); }, []);
-
-  const handleSave = () => {
-    mockDB.updateService(editing);
-    setServices(mockDB.getServices());
-    setEditing(null);
-    showToast("Service sauvegardé", "success");
+  const loadServices = async () => {
+    try {
+      const res = await fetch('/api/content');
+      const content = await res.json();
+      if (content.services) {
+        setServices(content.services);
+      } else {
+        setServices(mockDB.getServices());
+      }
+    } catch (e) {
+      setServices(mockDB.getServices());
+    }
   };
 
-  const handleDelete = (id: string | number) => {
-    if(confirm('Supprimer ?')) {
+  useEffect(() => {
+    loadServices();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      const res = await fetch('/api/content');
+      const currentContent = await res.json();
+      
+      let updatedServices;
+      if (editing.id) {
+        // Update existing
+        updatedServices = services.map(s => s.id === editing.id ? editing : s);
+      } else {
+        // Create new
+        const newService = { ...editing, id: Date.now().toString() };
+        updatedServices = [...services, newService];
+      }
+
+      const updatedContent = { ...currentContent, services: updatedServices };
+      
+      await fetch('/api/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedContent)
+      });
+      
+      setServices(updatedServices);
+      setEditing(null);
+      showToast("Service sauvegardé (Fichier)", "success");
+    } catch (e) {
+      mockDB.updateService(editing);
+      loadServices();
+      setEditing(null);
+      showToast("Sauvegardé en local (Fallback)", "warning");
+    }
+  };
+
+  const handleDelete = async (id: string | number) => {
+    if(confirm('Supprimer ce service ?')) {
+      try {
+        const res = await fetch('/api/content');
+        const currentContent = await res.json();
+        const updatedServices = services.filter(s => s.id !== id);
+        const updatedContent = { ...currentContent, services: updatedServices };
+
+        await fetch('/api/content', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedContent)
+        });
+
+        setServices(updatedServices);
+        showToast("Service supprimé", "success");
+      } catch (e) {
         mockDB.deleteService(id);
-        setServices(mockDB.getServices());
+        loadServices();
+        showToast("Supprimé en local (Fallback)", "warning");
+      }
     }
   };
 
@@ -160,28 +243,99 @@ export const TestimonialManager = ({ showToast }: { showToast: any }) => {
   const [testimonials, setTestimonials] = useState<any[]>([]);
   const [editing, setEditing] = useState<any | null>(null);
 
-  useEffect(() => { setTestimonials(mockDB.getTestimonials()); }, []);
-
-  const handleSave = () => {
-    mockDB.saveTestimonial(editing);
-    setTestimonials(mockDB.getTestimonials());
-    setEditing(null);
-    showToast("Témoignage sauvegardé", "success");
-  };
-
-  const handleDelete = (id: string | number) => {
-    if(confirm('Supprimer ce témoignage ?')) {
-        mockDB.deleteTestimonial(id);
+  const loadTestimonials = async () => {
+    try {
+      const res = await fetch('/api/content');
+      const content = await res.json();
+      if (content.testimonials) {
+        setTestimonials(content.testimonials);
+      } else {
         setTestimonials(mockDB.getTestimonials());
-        showToast("Témoignage supprimé", "success");
+      }
+    } catch (e) {
+      setTestimonials(mockDB.getTestimonials());
     }
   };
 
-  const toggleApproval = (id: string | number) => {
+  useEffect(() => {
+    loadTestimonials();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      const res = await fetch('/api/content');
+      const currentContent = await res.json();
+      
+      let updatedTestimonials;
+      if (editing.id) {
+        updatedTestimonials = testimonials.map(t => t.id === editing.id ? editing : t);
+      } else {
+        const newTestimonial = { ...editing, id: Date.now().toString(), date: new Date().toISOString() };
+        updatedTestimonials = [...testimonials, newTestimonial];
+      }
+
+      const updatedContent = { ...currentContent, testimonials: updatedTestimonials };
+      
+      await fetch('/api/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedContent)
+      });
+      
+      setTestimonials(updatedTestimonials);
+      setEditing(null);
+      showToast("Témoignage sauvegardé (Fichier)", "success");
+    } catch (e) {
+      mockDB.saveTestimonial(editing);
+      loadTestimonials();
+      setEditing(null);
+      showToast("Sauvegardé en local (Fallback)", "warning");
+    }
+  };
+
+  const handleDelete = async (id: string | number) => {
+    if(confirm('Supprimer ce témoignage ?')) {
+      try {
+        const res = await fetch('/api/content');
+        const currentContent = await res.json();
+        const updatedTestimonials = testimonials.filter(t => t.id !== id);
+        const updatedContent = { ...currentContent, testimonials: updatedTestimonials };
+
+        await fetch('/api/content', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedContent)
+        });
+
+        setTestimonials(updatedTestimonials);
+        showToast("Témoignage supprimé", "success");
+      } catch (e) {
+        mockDB.deleteTestimonial(id);
+        loadTestimonials();
+        showToast("Supprimé en local (Fallback)", "warning");
+      }
+    }
+  };
+
+  const toggleApproval = async (id: string | number) => {
     const updated = testimonials.map(t => t.id === id ? {...t, status: t.status === 'pending' ? 'approved' : 'pending'} : t);
     setTestimonials(updated);
-    mockDB.saveTestimonials(updated);
-    showToast("Statut mis à jour", "success");
+    
+    try {
+      const res = await fetch('/api/content');
+      const currentContent = await res.json();
+      const updatedContent = { ...currentContent, testimonials: updated };
+      
+      await fetch('/api/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedContent)
+      });
+      showToast("Statut mis à jour", "success");
+    } catch (e) {
+      mockDB.saveTestimonials(updated);
+      showToast("Statut mis à jour en local", "warning");
+    }
   };
 
   return (
@@ -308,13 +462,78 @@ export const PortfolioManager = ({ showToast }: { showToast: any }) => {
   const [items, setItems] = useState<any[]>([]);
   const [editing, setEditing] = useState<any | null>(null);
 
-  useEffect(() => { setItems(mockDB.getPortfolio()); }, []);
+  const loadPortfolio = async () => {
+    try {
+      const res = await fetch('/api/content');
+      const content = await res.json();
+      if (content.portfolio) {
+        setItems(content.portfolio);
+      } else {
+        setItems(mockDB.getPortfolio());
+      }
+    } catch (e) {
+      setItems(mockDB.getPortfolio());
+    }
+  };
 
-  const handleSave = () => {
-    mockDB.savePortfolioItem(editing);
-    setItems(mockDB.getPortfolio());
-    setEditing(null);
-    showToast("Projet mis à jour", "success");
+  useEffect(() => {
+    loadPortfolio();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      const res = await fetch('/api/content');
+      const currentContent = await res.json();
+      
+      let updatedItems;
+      if (editing.id) {
+        updatedItems = items.map(i => i.id === editing.id ? editing : i);
+      } else {
+        const newItem = { ...editing, id: Date.now().toString() };
+        updatedItems = [...items, newItem];
+      }
+
+      const updatedContent = { ...currentContent, portfolio: updatedItems };
+      
+      await fetch('/api/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedContent)
+      });
+      
+      setItems(updatedItems);
+      setEditing(null);
+      showToast("Projet sauvegardé (Fichier)", "success");
+    } catch (e) {
+      mockDB.savePortfolioItem(editing);
+      loadPortfolio();
+      setEditing(null);
+      showToast("Sauvegardé en local (Fallback)", "warning");
+    }
+  };
+
+  const handleDelete = async (id: string | number) => {
+    if(confirm('Supprimer ce projet ?')) {
+      try {
+        const res = await fetch('/api/content');
+        const currentContent = await res.json();
+        const updatedItems = items.filter(i => i.id !== id);
+        const updatedContent = { ...currentContent, portfolio: updatedItems };
+
+        await fetch('/api/content', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedContent)
+        });
+
+        setItems(updatedItems);
+        showToast("Projet supprimé", "success");
+      } catch (e) {
+        mockDB.deletePortfolioItem(id);
+        loadPortfolio();
+        showToast("Supprimé en local (Fallback)", "warning");
+      }
+    }
   };
 
   return (
@@ -386,13 +605,78 @@ export const TeamManager = ({ showToast }: { showToast: any }) => {
   const [members, setMembers] = useState<any[]>([]);
   const [editing, setEditing] = useState<any | null>(null);
 
-  useEffect(() => { setMembers(mockDB.getTeam()); }, []);
+  const loadTeam = async () => {
+    try {
+      const res = await fetch('/api/content');
+      const content = await res.json();
+      if (content.team) {
+        setMembers(content.team);
+      } else {
+        setMembers(mockDB.getTeam());
+      }
+    } catch (e) {
+      setMembers(mockDB.getTeam());
+    }
+  };
 
-  const handleSave = () => {
-    mockDB.saveTeamMember(editing);
-    setMembers(mockDB.getTeam());
-    setEditing(null);
-    showToast("Membre mis à jour", "success");
+  useEffect(() => {
+    loadTeam();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      const res = await fetch('/api/content');
+      const currentContent = await res.json();
+      
+      let updatedTeam;
+      if (editing.id) {
+        updatedTeam = members.map(m => m.id === editing.id ? editing : m);
+      } else {
+        const newMember = { ...editing, id: Date.now().toString() };
+        updatedTeam = [...members, newMember];
+      }
+
+      const updatedContent = { ...currentContent, team: updatedTeam };
+      
+      await fetch('/api/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedContent)
+      });
+      
+      setMembers(updatedTeam);
+      setEditing(null);
+      showToast("Membre sauvegardé (Fichier)", "success");
+    } catch (e) {
+      mockDB.saveTeamMember(editing);
+      loadTeam();
+      setEditing(null);
+      showToast("Sauvegardé en local (Fallback)", "warning");
+    }
+  };
+
+  const handleDelete = async (id: string | number) => {
+    if(confirm('Supprimer ce membre ?')) {
+      try {
+        const res = await fetch('/api/content');
+        const currentContent = await res.json();
+        const updatedTeam = members.filter(m => m.id !== id);
+        const updatedContent = { ...currentContent, team: updatedTeam };
+
+        await fetch('/api/content', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedContent)
+        });
+
+        setMembers(updatedTeam);
+        showToast("Membre supprimé", "success");
+      } catch (e) {
+        mockDB.deleteTeamMember(id);
+        loadTeam();
+        showToast("Supprimé en local (Fallback)", "warning");
+      }
+    }
   };
 
   return (
@@ -407,14 +691,14 @@ export const TeamManager = ({ showToast }: { showToast: any }) => {
               form={
                 <>
                   <div className="grid grid-cols-2 gap-4">
-                     <div>
-                        <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Nom</label>
-                        <input className="w-full p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl" value={editing.name} onChange={e => setEditing({...editing, name: e.target.value})} />
-                     </div>
-                     <div>
-                        <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Rôle</label>
-                        <input className="w-full p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl" value={editing.role} onChange={e => setEditing({...editing, role: e.target.value})} />
-                     </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Nom</label>
+                      <input className="w-full p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl" value={editing.name} onChange={e => setEditing({...editing, name: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Rôle</label>
+                      <input className="w-full p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl" value={editing.role} onChange={e => setEditing({...editing, role: e.target.value})} />
+                    </div>
                   </div>
                   <ImageUpload label="Photo de profil" currentImage={editing.image} onImageChange={(url) => setEditing({...editing, image: url})} />
                 </>
@@ -438,7 +722,7 @@ export const TeamManager = ({ showToast }: { showToast: any }) => {
                   </div>
                   <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => setEditing(m)} className="p-2 bg-gray-100 dark:bg-white/5 hover:bg-primary hover:text-white rounded-lg transition-colors"><Edit3 size={16} /></button>
-                    <button onClick={() => { if(confirm('Supprimer ?')) { mockDB.deleteTeamMember(m.id); setMembers(mockDB.getTeam()); } }} className="p-2 bg-red-50 dark:bg-red-900/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors"><Trash2 size={16} /></button>
+                    <button onClick={() => handleDelete(m.id)} className="p-2 bg-red-50 dark:bg-red-900/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors"><Trash2 size={16} /></button>
                   </div>
                 </div>
               ))}
@@ -447,6 +731,157 @@ export const TeamManager = ({ showToast }: { showToast: any }) => {
         )}
       </AnimatePresence>
     </>
+  );
+};
+
+// --- NAVBAR/HEADER MANAGER ---
+export const HeaderManager = ({ showToast }: { showToast: any }) => {
+  const [data, setData] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/content')
+      .then(res => res.json())
+      .then(content => {
+        if (content.navbar) setData(content.navbar);
+      });
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      const res = await fetch('/api/content');
+      const currentContent = await res.json();
+      const updatedContent = { ...currentContent, navbar: data };
+      
+      await fetch('/api/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedContent)
+      });
+      showToast("Header mis à jour", "success");
+    } catch (e) {
+      showToast("Erreur lors de la sauvegarde", "error");
+    }
+  };
+
+  if (!data) return null;
+
+  return (
+    <LivePreviewLayout 
+      title="Gestion du Header"
+      actions={<button onClick={handleSave} className="px-6 py-2 bg-primary text-white rounded-lg font-bold flex items-center gap-2 hover:bg-primary-dark"><Save size={18}/> Enregistrer</button>}
+      form={
+        <div className="space-y-4">
+          <ImageUpload label="Logo" currentImage={data.logo} onImageChange={(url) => setData({...data, logo: url})} />
+          <div>
+            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Nom de l'entreprise</label>
+            <input className="w-full p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl" value={data.companyName} onChange={e => setData({...data, companyName: e.target.value})} />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Label Bouton CTA</label>
+            <input className="w-full p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl" value={data.ctaLabel} onChange={e => setData({...data, ctaLabel: e.target.value})} />
+          </div>
+        </div>
+      }
+      preview={
+        <div className="p-8 bg-slate-900 rounded-2xl flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img src={data.logo} alt="Logo" className="h-8 w-8 object-contain" />
+            <span className="font-bold text-white">{data.companyName}</span>
+          </div>
+          <div className="flex gap-4 text-gray-400 text-xs uppercase font-bold">
+            <span>Accueil</span>
+            <span>Services</span>
+            <span>Contact</span>
+          </div>
+          <button className="px-4 py-2 bg-primary text-white rounded-full text-xs font-bold">{data.ctaLabel}</button>
+        </div>
+      }
+    />
+  );
+};
+
+// --- FOOTER MANAGER ---
+export const FooterManager = ({ showToast }: { showToast: any }) => {
+  const [data, setData] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/content')
+      .then(res => res.json())
+      .then(content => {
+        if (content.footer) setData(content.footer);
+      });
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      const res = await fetch('/api/content');
+      const currentContent = await res.json();
+      const updatedContent = { ...currentContent, footer: data };
+      
+      await fetch('/api/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedContent)
+      });
+      showToast("Footer mis à jour", "success");
+    } catch (e) {
+      showToast("Erreur lors de la sauvegarde", "error");
+    }
+  };
+
+  if (!data) return null;
+
+  return (
+    <LivePreviewLayout 
+      title="Gestion du Footer"
+      actions={<button onClick={handleSave} className="px-6 py-2 bg-primary text-white rounded-lg font-bold flex items-center gap-2 hover:bg-primary-dark"><Save size={18}/> Enregistrer</button>}
+      form={
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Description</label>
+            <textarea rows={3} className="w-full p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl" value={data.description} onChange={e => setData({...data, description: e.target.value})} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Titre Newsletter</label>
+              <input className="w-full p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl" value={data.newsletterTitle} onChange={e => setData({...data, newsletterTitle: e.target.value})} />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Texte Newsletter</label>
+              <input className="w-full p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl" value={data.newsletterDesc} onChange={e => setData({...data, newsletterDesc: e.target.value})} />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Copyright</label>
+            <input className="w-full p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl" value={data.copyright} onChange={e => setData({...data, copyright: e.target.value})} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Email Contact</label>
+              <input className="w-full p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl" value={data.email} onChange={e => setData({...data, email: e.target.value})} />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Téléphone</label>
+              <input className="w-full p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl" value={data.phone} onChange={e => setData({...data, phone: e.target.value})} />
+            </div>
+          </div>
+        </div>
+      }
+      preview={
+        <div className="p-8 bg-slate-900 rounded-2xl space-y-4">
+          <div className="flex flex-col gap-2">
+            <span className="text-white font-bold text-lg">Mind Graphix</span>
+            <p className="text-gray-400 text-xs max-w-xs">{data.description}</p>
+          </div>
+          <div className="border-t border-white/10 pt-4 flex justify-between items-center">
+            <span className="text-gray-500 text-[10px]">{data.copyright}</span>
+            <div className="flex gap-3 text-gray-400">
+               <span className="text-[10px]">{data.email}</span>
+            </div>
+          </div>
+        </div>
+      }
+    />
   );
 };
 

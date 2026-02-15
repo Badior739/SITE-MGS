@@ -22,7 +22,7 @@ import PageBuilder from './PageBuilder';
 import MediaManager from './MediaManager'; 
 import SEOManager from './SEOManager';
 import AIAssistant from './AIAssistant'; 
-import { HomeManager, ServiceManager, TeamManager, PortfolioManager, TestimonialManager } from './AdminCMS';
+import { HomeManager, ServiceManager, TeamManager, PortfolioManager, TestimonialManager, HeaderManager, FooterManager } from './AdminCMS';
 import SecuritySettings from './SecuritySettings'; 
 import RoleManager from './RoleManager'; 
 import BackupManager from './BackupManager';
@@ -104,6 +104,8 @@ const AdminPanel = () => {
     switch(activePage) {
       case 'dashboard': return <ModularDashboard />;
       case 'home_manager': return <HomeManager showToast={showToast} />;
+      case 'header_manager': return <HeaderManager showToast={showToast} />;
+      case 'footer_manager': return <FooterManager showToast={showToast} />;
       case 'services_manager': return <ServiceManager showToast={showToast} />;
       case 'testimonials_manager': return <TestimonialManager showToast={showToast} />;
       case 'portfolio_manager': return <PortfolioManager showToast={showToast} />;

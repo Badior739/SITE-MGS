@@ -27,6 +27,26 @@ const Navbar: React.FC<NavbarProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
+  const [navbarData, setNavbarData] = useState({
+    logo: "/logo_sans_font.png",
+    companyName: "Mind Graphix",
+    ctaLabel: "Démarrer"
+  });
+
+  useEffect(() => {
+    const loadNavbar = async () => {
+      try {
+        const res = await fetch('/api/content');
+        const content = await res.json();
+        if (content.navbar) {
+          setNavbarData(content.navbar);
+        }
+      } catch (e) {
+        console.error("Error loading navbar data", e);
+      }
+    };
+    loadNavbar();
+  }, []);
   
   // Barre de progression de lecture (Design Architecte)
   const { scrollYProgress } = useScroll();
@@ -116,7 +136,7 @@ const Navbar: React.FC<NavbarProps> = ({
             <div className="relative flex items-center gap-2">
               <div className={`relative w-auto transition-all duration-300 ${scrolled ? 'h-8' : 'h-10'}`} style={{ aspectRatio: '1/1' }}>
                 <Image 
-                  src="/logo_sans_font.png" 
+                  src={navbarData.logo} 
                   alt="MGS Logo"
                   fill
                   className="object-contain filter drop-shadow-lg"
@@ -128,7 +148,7 @@ const Navbar: React.FC<NavbarProps> = ({
             {!scrolled && (
               <div className="flex flex-col justify-center hidden md:flex">
                 <div className="font-black text-lg leading-none tracking-tighter text-[var(--text-main)] group-hover:text-[var(--accent-color)] transition-colors">
-                  Mind Graphix
+                  {navbarData.companyName}
                 </div>
               </div>
             )}
